@@ -1,11 +1,17 @@
-BLAS_LIB   := $(HOME)/blis/lib/libblis.a
-FLAME_LIB  := $(HOME)/libflame/lib/libflame.a
-FLAME_INC  := $(HOME)/libflame/include
+BLIS_INSTALL_DIR     := $(HOME)/blis                                                
+LIBFLAME_INSTALL_DIR := $(HOME)/libflame                                                
+                                                                                
+-include path.mk     
+
+
+BLAS_LIB   := $(BLIS_INSTALL_DIR)/lib/libblis.a
+FLAME_LIB  := $(LIBFLAME_INSTALL_DIR)/lib/libflame.a
+FLAME_INC  := $(LIBFLAME_INSTALL_DIR)/include/
 
 # indicate where the object files are to be created
 CC         := gcc
 LINKER     := $(CC)
-CFLAGS     := -O3 -Wall -I$(FLAME_INC) -I$(CBLAS_INC) -m64 -msse3 
+CFLAGS     := -O3 -Wall -I$(FLAME_INC) -I$(CBLAS_INC) -m64 -march=native
 FFLAGS     := $(CFLAGS) 
 
 # set the range of experiments to be performed
@@ -19,7 +25,7 @@ LDFLAGS    := -m64 -lm -fopenmp
 # indicate where the FLAME include files reside
 
 # add files in which your implementations are coded
-TEST_OBJS  := driver.o trmm_llnn_unb_var1.o 
+TEST_OBJS  := driver.o symv_unb_var4.o
 
 driver: $(TEST_OBJS) 
 	$(LINKER) $(TEST_OBJS) $(FLAME_LIB) $(BLAS_LIB) $(LDFLAGS) -o driver.x

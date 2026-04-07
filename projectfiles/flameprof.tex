@@ -49,186 +49,197 @@
 	\maketitle
 
 \section{Operation}
+Consider the operation 
 
-Consider the operation
-\[
-B := L B 
-\]
-where $ L $ is a $ m \times m $ lower triangular matrix and $ B $ is a $ m \times n $ matrix.
-This is a special case of  
-matrix-matrix multiplication, 
-with the {\sc l}ower triangular matrix on the {\sc l}eft, 
-and the triangular matrix is {\sc n}ot transposed.
-We will refer to this operation
-as {\sc Trmm\_llnn} where the {\sc llnn} stands for
-\underline{l}eft
+\[y := Ax + y,\]
+
+where $A$ is a $m \times m$ matrix stored in the lower triangular part, and $x$
+and $y$ are vectors of length $m$. This operation is a special case of
+matrix-vector multiplication where $A$ is a symmetric matrix stored in the lower
+triangular part. We will refer to this operation as {\sc Symv\_ln}m where the
+{\sc ln} stands for 
 \underline{l}ower
-\underline{n}o-transpose
-\underline{n}onunit diagonal.
-The {\sc n}onunit diagonal means we will use the entries of the matrix that are stored on the diagonal.  In some other cases, the entries on the diagonal may implicitly be taked to all equal one ({\sc u}nit).
+\underline{n}o-transpose.
+
+
 
 \section{Precondition and Postcondition}
 
 In the precondition 
 \[
-B = \widehat B
+y = \widehat y
 \]
-$ \widehat B $ denotes the original contents of $ B $.
+$ \widehat y $ denotes the original contents of $ y $.
 This allows us to express the state upon completion, the postcondition, as
 \[
-B = L \widehat B.
+y = Ax + \widehat y
 \]
-It is implicitly assumed that $ L $ is nonunit lower triangular.
+It is implicitly assumed that $ A $  is symmetric and stored in the lower
+triangular part. 
+
 \section{Partitioned Matrix Expressions and Loop Invariants}
 
-There are two PMEs for this operation.
+To derive the PME, partition 
 
-\subsection{PME 1}
+\[ A \rightarrow \FlaTwoByTwo{A_{TL}}{A_{TR}}{A_{BR}}{A_{BL}},~
+ y \rightarrow \FlaTwoByOne{y_{T}}{y_B}, \text{~and~} x \rightarrow \FlaTwoByOne{x_{T}}{x_B}  \]
 
-To derive the second PME, partition
-\[
-L \rightarrow
-\left(\begin{array}{c I c}
-	L_{TL} & 0 \\ \whline
-	L_{BL} & L_{BR}
-\end{array}\right)
-,
-\quad \mbox{and} \quad
-B \rightarrow 
-\left(\begin{array}{c}
-	B_T \\ \whline
-	B_B
-\end{array}\right).
-\]
 Substituting these into the postcondition
 yields
 \[
 \left(\begin{array}{c}
-	B_T \\ \whline
-	B_B
+	y_T \\ \whline
+	y_B
 \end{array}\right)
 =
 \left(\begin{array}{c I c}
-	L_{TL} & 0 \\ \whline
-	L_{BL} & L_{BR}
-\end{array}\right)
+	A_{TL} & A_{BL}^T \\ \whline
+	A_{BL} & A_{BR}
+\end{array}\right) \left(
+\begin{array}{c}
+x_T \\ \whline x_B
+\end{array}
+\right) +
 \left(\begin{array}{c}
-	\widehat B_T \\ \whline
-	\widehat B_B
+	\widehat y_T \\ \whline
+	\widehat y_B
 \end{array}\right)
 \]
 or, equivalently,
 \[
 \left(\begin{array}{c}
-	B_T \\ \whline
-	B_B
+	y_T \\ \whline
+	y_B
 \end{array}\right)
 =
 \left(\begin{array}{c}
-	L_{TL} \widehat B_T \\ \whline
-	L_{BL} \widehat B_T + L_{BR} \widehat B_B
-\end{array}\right),
+	A_{TL}x_T + A_{BL}^Tx_B + \widehat y_T \\ \whline
+	A_{BL}x_T + A_{BR}^Tx_B + \widehat y_B
+\end{array}\right).
 \]
-which we refer to as the first PME for this operations.
 
-From this, we can choose two loop invariants:
+From this, we can choose four loop invariants:
 \begin{description}
 	\item
 	{\bf Invariant 1:}
 \begin{equation}
 	\left(\begin{array}{c}
-		B_T \\ \whline
-		B_B
-	\end{array}\right)
-	= 
+		y_T \\ \whline
+		y_B 
+	\end{array}\right)  = 
 	\left(\begin{array}{c}
-		\widehat B_T \\ \whline
-		L_{BR} \widehat B_B
-	\end{array}\right).	
+		A_{TL} x_T + \widehat y_T \\ \whline 
+		\widehat y_B 
+	\end{array}\right)
 \label{eq:inv1}
-\end{equation}	
- \\
-	(The top part has been left alone and the bottom part has been partially computed).
+\end{equation}
+	The top part has been partially computed and the bottom part has been left
+alone. 
 	\item
 	{\bf Invariant 2:}
 \begin{equation}
-	\left(\begin{array}{c}
-		B_T \\ \whline
-		B_B
-	\end{array}\right) = 
-	\left(\begin{array}{c}
-		\widehat B_T \\ \whline
-		L_{BL} \widehat B_T + L_{BR} \widehat B_B
-	\end{array}\right).
-\label{eq:inv2}
+\left(\begin{array}{c}
+		y_T \\ \whline
+		y_B 
+	\end{array}\right)  = 
+	\left(\begin{array}{r}
+		A_{TL} x_T + A_{BL}^T x_B + \widehat y_T \\ \whline 
+		\widehat y_B 
+	\end{array}\right)
+	\label{eq:inv2}
 	\end{equation} \\
-	(The top part has been left alone and the bottom part has been completely computed).
-\end{description}
-
-\subsection{PME 2}
-
-To derive the second PME, partition
-\[
-B \rightarrow \left(\begin{array}{c I c}
-	B_L & B_R 
-\end{array}\right)
-\]
-and do not partition $ L $.
-Substituting these into the postcondition
-yields
-\[
-\left(\begin{array}{c I c}
-	B_L & B_R 
-\end{array}\right)
-=
-L 
-\left(\begin{array}{c I c}
-	\widehat B_L & \widehat B_R 
-\end{array}\right)
-\]
-or, equivalently,
-\[
-\left(\begin{array}{c I c}
-	B_L & B_R 
-\end{array}\right)
-=
-\left(\begin{array}{c I c}
-	L \widehat B_L & L \widehat B_R 
-\end{array}\right),
-\]
-which we refer to as the second PME.
-
-From this, we can choose two more loop invariants:
-\begin{description}
-	\item
-	{\bf Invariant 3:}
-
+	The top part has been fully computed and the bottom part has been left
+alone.
+\item 
+{\bf Invariant 3:}
 \begin{equation}
-		\left(\begin{array}{c I c}
-		B_L & B_R 
-	\end{array}\right) =
-	\left(\begin{array}{c I c}
-		L \widehat B_L & \widehat B_R 
-	\end{array}\right).
+    \left(\begin{array}{c}
+        y_T \\ \whline
+        y_B 
+    \end{array}\right)  = 
+    \left(\begin{array}{c}
+        A_{TL} x_T + \widehat y_T \\ \whline 
+        A_{BL} x_T + \widehat y_B 
+    \end{array}\right)
 \label{eq:inv3}
 \end{equation}
-\\
-	(The left part has been completely finished and the right part has been left untouched).
-	\item
-	{\bf Invariant 4:}
-	
-\begin{equation}
-		\left(\begin{array}{c I c}
-		B_L & B_R 
-	\end{array}\right) =
-	\left(\begin{array}{c I c}
-		\widehat B_L & L \widehat B_R 
-	\end{array}\right).
-\label{eq:inv4}
-\end{equation}\\
-	(The left part has been completely finished and the right part has been left untouched).
-\end{description}
+    The top part and bottom part has been partially computed.
 
+\item
+{\bf Invariant 4:}
+\begin{equation}
+    \left(\begin{array}{c}
+        y_T \\ \whline
+        y_B 
+    \end{array}\right)  = 
+    \left(\begin{array}{c}
+        A_{TL} x_T +  A_{BL}^T x_B \widehat y_T \\ \whline 
+        A_{BL} x_T + \widehat y_B 
+    \end{array}\right)
+\label{eq:inv3}
+\end{equation}
+ The top part is fully computed and bottom part has been partially computed.
+ 	\item
+	{\bf Invariant 5:}
+\begin{equation}
+	\left(\begin{array}{c}
+		y_T \\ \whline
+		y_B 
+	\end{array}\right)  = 
+	\left(\begin{array}{c}
+		 \widehat y_T \\ \whline 
+		A_{BR}x_{B} + \widehat y_B 
+	\end{array}\right)
+\label{eq:inv5}
+\end{equation}
+	The top part has been partially computed and the bottom part has been left
+alone. 
+	\item
+	{\bf Invariant 6:}
+\begin{equation}
+\left(\begin{array}{c}
+		y_T \\ \whline
+		y_B 
+	\end{array}\right)  = 
+	\left(\begin{array}{r}
+		\widehat y_T \\ \whline 
+		A_{BL}x_T + A_{BR}x_{B} + \widehat y_B 
+	\end{array}\right)
+	\label{eq:inv6}
+	\end{equation} \\
+	The top part has been fully computed and the bottom part has been left
+alone.
+\item 
+{\bf Invariant 7:}
+\begin{equation}
+    \left(\begin{array}{c}
+        y_T \\ \whline
+        y_B 
+    \end{array}\right)  = 
+    \left(\begin{array}{c}
+        A_{BL}^T x_T + \widehat y_T \\ \whline 
+        A_{BR} x_B + \widehat y_B 
+    \end{array}\right)
+\label{eq:inv7}
+\end{equation}
+    The top part and bottom part has been partially computed.
+
+\item
+{\bf Invariant 8:}
+\begin{equation}
+    \left(\begin{array}{c}
+        y_T \\ \whline
+        y_B 
+    \end{array}\right)  = 
+    \left(\begin{array}{c}
+        A_{BL}^T x_B+ \widehat y_T \\ \whline 
+        A_{BL} x_T + A_{BR}x_B + \widehat y_B 
+    \end{array}\right)
+\label{eq:inv8}
+\end{equation}
+ The bottom part is fully computed and top part has been partially computed.
+ 
+\end{description}
 
 \section{Deriving the Algorithms}
 
@@ -262,17 +273,19 @@ The unblocked algorithm for loop invariant \eqref{eq:inv1} is showing in Figure~
 	\label{fig:blk_inv1}
 \end{figure}
 
+\NoShow{
 \section{Performance of the blocked and unblocked Algorithms}
 
 Figure~\ref{fig:unbAlg1} shows the performance of the unblocked algorithm for loop invariant~\ref{eq:inv1} of TRMM.
 
+\NoShow{
 \begin{figure}
-\includegraphics[width=\textwidth]{FLAMEC/Plot_unb_GFLOPS.pdf}
+\includegraphics[width=\textwidth]{flamec/Plot_unb_GFLOPS.pdf}
 \caption{Performance of the unblocked algorithm for loop invariant~\ref{eq:inv1} of TRMM}.
 \label{fig:unbAlg1}
 \end{figure}
-
-
+}
+}
 
 \end{document}
 
